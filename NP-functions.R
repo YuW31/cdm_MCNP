@@ -660,4 +660,12 @@ mc.npc <- function(dat,eta.class,w.class){
   return (est.att.ham)
 }
 
-
+nested.q <- function(parent.q){
+  m = length(which(parent.q != 0))
+  q.loc = which(parent.q == 1)
+  cb = do.call("cbind",expand.grid(lapply(q.loc,function(x)(c(0,x))))[2:(2^m-1),,drop=FALSE])
+  x2 = sample(1:nrow(cb),1,replace = FALSE)
+  candidate.q = rep(0,length(parent.q))
+  candidate.q[cb[x2,]] = 1
+  return(candidate.q)
+}
