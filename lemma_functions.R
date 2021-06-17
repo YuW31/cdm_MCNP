@@ -28,8 +28,6 @@ lemma.func <- function(item.q){
   if (all.proper) {cat("not proper\n")}
   if (!(usefulness || all.proper)) {cat("useful and proper\n")}
   
-  
-  
 }
 
 
