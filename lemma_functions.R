@@ -18,7 +18,7 @@ lemma.func <- function(item.q){
     candi.q[which(candi.q > 0)] = 1
     candi.q = data.frame(t(candi.q))
     
-    all.par.q <- sapply(apply(item.q,1,function(x){x-candi.q}),function(y){all(y>=0)})
+    all.par.q <- sapply(apply(item.q,1,function(x){x-candi.q}),function(y){all(y==0)})
     if(!any(all.par.q)) {
       all.proper <- TRUE
       }
@@ -36,3 +36,8 @@ lemma.func(ex1)
 
 ex2 <- matrix(c(1,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,0,0,1),nrow = 4,ncol = 5, byrow = TRUE)
 lemma.func(ex2)
+
+ex3 <- matrix(c(1,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,0,0,0),nrow = 4,ncol = 5, byrow = TRUE)
+lemma.func(ex3)
+                         
+
