@@ -16,7 +16,7 @@ lemma.func <- function(item.q){
     q2 = distractor.q[loc[2],]
     candi.q = q1+q2
     candi.q[which(candi.q > 0)] = 1
-    candi.q = data.frame(t(candi.q))
+    candi.q = as.data.frame(candi.q)
     
     all.par.q <- sapply(apply(item.q,1,function(x){x-candi.q}),function(y){all(y==0)})
     if(!any(all.par.q)) {
