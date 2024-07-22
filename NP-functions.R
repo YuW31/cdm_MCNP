@@ -146,6 +146,7 @@ generate.Q <- function(K, J, q, Nset_complete=1) {
 
 
 # O=3,4,5,6
+# may need to change based on the Q-completeness
 mcq.generate = function(O, Q) {
   mc.q <- c()
   key <- c()
@@ -538,7 +539,8 @@ l.q <- function(Qj){
   
 }
 
-epc.generate = function(mcq,O,key){
+
+epc.generate = function(mcq,O,key,LS = NULL){
   # for ideal responses
   
   Q <- mcq[, -c(1:2),drop = FALSE]
@@ -549,11 +551,18 @@ epc.generate = function(mcq,O,key){
   
   J = length(unique(item.no))
   K = ncol(Q)
-  Class = class.generate(K)
+  if (is.null(LS)){
+    Class <- class.generate(K)
+    M = 2^K
+  } else {
+    Class <- LS
+    M = nrow(LS)
+  }
+  
   no.options <- rep(O, J)
   
   # "scored" option
-  eta.class <- matrix(0,J,2^K)
+  eta.class <- matrix(0,J,M)
   # B.list = vector(length = J,mode = "list")
   for(j in 1:J){
     
@@ -570,7 +579,7 @@ epc.generate = function(mcq,O,key){
       
       Qj <- Qj[order(kj.order),]
       A <- Class%*%t(Qj)
-      B <- t(1*(A==(matrix(1,2^K)%*%t(rowSums(Qj)))))
+      B <- t(1*(A==(matrix(1,M)%*%t(rowSums(Qj)))))
       
       eta.j = apply(B,2,function(x){
         l = which(x==1)
@@ -579,7 +588,7 @@ epc.generate = function(mcq,O,key){
     }else{
       
       A <- Class%*%t(Qj)
-      B <- rbind(0,t(1*(A==(matrix(1,2^K)%*%t(rowSums(Qj))))))
+      B <- rbind(0,t(1*(A==(matrix(1,M)%*%t(rowSums(Qj))))))
       
       eta.j <- apply(B,2,which.max)
       eta.j <- eta.j-1
@@ -608,7 +617,7 @@ stu.generate = function(I, K, N) {
     while (TRUE) {
       gene.sigma <- function() {
         # lower.sigma <- matrix(runif(K*K,corr[1],corr[2]),K)
-        lower.sigma <- matrix(0.4, nrow = K, ncol = K)
+        lower.sigma <- matrix(0.5, nrow = K, ncol = K)
         lower.sigma[lower.tri(lower.sigma)] <- 0
         trial.sigma <- t(lower.sigma) + lower.sigma
         diag(trial.sigma) <- 1
@@ -704,6 +713,7 @@ prob.generate = function(mcq, O, att, corr.q) {
 score.option = function(mcq, O) {
   J = length(unique(mcq[, 1]))
   Q <- mcq[,-c(1:2), drop = FALSE]
+  K = ncol(Q)
   
   Item.info <- mcq[, 1:2, drop = FALSE]
   item.no <- mcq[, 1]
@@ -782,8 +792,9 @@ get.dis <- function(d, M) {
 ### input mc.q Observedresponse O
 ### Modified for CAT
 ### Cannot run for 1 item
-algo_mc.npc <- function(mcq, dat, O) {
-  # matrix not a list
+algo_mc.npc <- function(mcq, dat, H, LS = NULL) {
+  # input: matrix not a list
+  # LS: a matrix
   
   K = ncol(mcq) - 2
   J = ncol(dat)
@@ -803,31 +814,37 @@ algo_mc.npc <- function(mcq, dat, O) {
     save.m <- c(save.m, length(which(mcq[, 1] == j.id)))
   }
   
-  LatentClass <- class.generate(K)
+  if (is.null(LS)){
+    LatentClass <- class.generate(K)
+    M = 2^K
+  } else {
+    LatentClass <- LS
+    M = nrow(LS)
+  }
   
   
-  eta.class <- epc.generate(mcq, O, key) # "scored" option
+  eta.class <- epc.generate(mcq, H, key,LatentClass) # "scored" option
   
   
-  score.op <- score.option(mcq, O)
+  score.op <- score.option(mcq, H)
   
   # number of coded options is larger than the noncoded options
-  prob.j1 <- which(save.m < O & save.m > O / 2)
+  prob.j1 <- which(save.m < H & save.m > H / 2)
   
-  prob.j2 <- which(save.m == O)
+  prob.j2 <- which(save.m == H)
   
   
-  w.class <- matrix(1, J, 2 ^ K)
-  for (i in 1:2 ^ K) {
-    p = 1 / O
-    w = seq(1, 0, by = -p)[-c(1, O, O + 1)]
+  w.class <- matrix(1, J, M)
+  for (i in 1:M) {
+    p = 1 / H
+    w = seq(1, 0, by = -p)[-c(1, H, H + 1)]
     
-    for (m in 2:(O - 1)) {
+    for (m in 2:(H - 1)) {
       ll1 <- intersect(which(eta.class[, i] == 0), which(save.m == m))
       w.class[ll1, i] = w[m - 1]
     }
     
-    ll3 <- intersect(which(eta.class[, i] == 0), which(save.m == O))
+    ll3 <- intersect(which(eta.class[, i] == 0), which(save.m == H))
     w.class[ll3, i] = 0
   }
   
@@ -838,26 +855,25 @@ algo_mc.npc <- function(mcq, dat, O) {
                            byrow = TRUE)
   for (i in 1:J) {
     gl <- score.op[[i]]
-    op <- c(1:O)
-    for (j in 1:O) {
+    op <- c(1:H)
+    for (j in 1:H) {
       score.response[, i][which(dat[, i] == j)] <-
         gl[, 2][which(gl[, 1] == j)]
     }
   }
   
   dis.ham <- vector(length = N, mode = "list")
-  dis.order <- matrix(nrow = N, ncol = 2 ^ K)
-  dis.all <- matrix(nrow = N, ncol = 2 ^ K)
+  dis.order <- matrix(nrow = N, ncol = M)
+  dis.all <- matrix(nrow = N, ncol = M)
   for (i in 1:N) {
     # cat("The estimation by the MC-NPC is in process: ",i,"/",N,"\n")
     d <- apply(t(eta.class), 1, function(x) {
       x - score.response[i, ]
     })
-    d <- matrix(d, byrow = FALSE, ncol = 2 ^ K)
+    d <- matrix(d, byrow = FALSE, ncol = M)
     d.hamming <- apply(d, c(1, 2), function(x) {
       ifelse(x != 0, 1, 0)
     })
-    
     sum.d <- diag(t(d.hamming) %*% w.class)
     dis.all[i, ] <- sum.d
     
