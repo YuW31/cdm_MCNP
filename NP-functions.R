@@ -539,8 +539,7 @@ l.q <- function(Qj){
   
 }
 
-
-epc.generate = function(mcq,O,key,LS = NULL){
+epc.generate = function(mcq,H,key,LS = NULL){
   # for ideal responses
   
   Q <- mcq[, -c(1:2),drop = FALSE]
@@ -559,7 +558,12 @@ epc.generate = function(mcq,O,key,LS = NULL){
     M = nrow(LS)
   }
   
-  no.options <- rep(O, J)
+  if(length(H) == 1){
+    no.options <- rep(H, J)
+  } else {
+    no.options <- H
+  }
+  
   
   # "scored" option
   eta.class <- matrix(0,J,M)
@@ -710,7 +714,7 @@ prob.generate = function(mcq, O, att, corr.q) {
   
 }
 
-score.option = function(mcq, O) {
+score.option = function(mcq, H) {
   J = length(unique(mcq[, 1]))
   Q <- mcq[,-c(1:2), drop = FALSE]
   K = ncol(Q)
@@ -734,8 +738,16 @@ score.option = function(mcq, O) {
     save.m <- c(save.m, length(which(mc.q$Item == j.id)))
   }
   
+  if(length(H) == 1){
+    no.options <- rep(H, J)
+  } else {
+    no.options <- H
+  }
   
   for (i in 1:J) {
+    
+    O = no.options[j]
+    
     j.id = unique(item.no)[i]
     
     Qj <- Q[which(item.no == j.id), , drop = FALSE]  # won't change data type
@@ -792,7 +804,7 @@ get.dis <- function(d, M) {
 ### input mc.q Observedresponse O
 ### Modified for CAT
 ### Cannot run for 1 item
-algo_mc.npc <- function(mcq, dat, H, LS = NULL) {
+algo_mc.npc <- function(dat, mcq, H, LS = NULL) {
   # input: matrix not a list
   # LS: a matrix
   
@@ -800,6 +812,11 @@ algo_mc.npc <- function(mcq, dat, H, LS = NULL) {
   J = ncol(dat)
   N = nrow(dat)
   
+  if(length(H) == 1){
+    H <- rep(H, J)
+  } else {
+    H <- H
+  }
   
   # mcq = as.data.frame(mcq)
   
@@ -829,23 +846,15 @@ algo_mc.npc <- function(mcq, dat, H, LS = NULL) {
   score.op <- score.option(mcq, H)
   
   # number of coded options is larger than the noncoded options
-  prob.j1 <- which(save.m < H & save.m > H / 2)
-  
-  prob.j2 <- which(save.m == H)
-  
-  
   w.class <- matrix(1, J, M)
-  for (i in 1:M) {
-    p = 1 / H
-    w = seq(1, 0, by = -p)[-c(1, H, H + 1)]
-    
-    for (m in 2:(H - 1)) {
-      ll1 <- intersect(which(eta.class[, i] == 0), which(save.m == m))
-      w.class[ll1, i] = w[m - 1]
+  for (j in 1:J){
+    p = 1 / H[j]
+    w = seq(1, 0, by = -p)[-c(1, H[j], H[j] + 1)]
+    if (2 <= save.m[j] && save.m[j]<= (H[j] - 1)){
+      w.class[j, which(eta.class[j, ] == 0)] = w[save.m[j] - 1]
+    } else if (save.m[j] == H[j]){
+      w.class[j, which(eta.class[j, ] == 0)] = 0
     }
-    
-    ll3 <- intersect(which(eta.class[, i] == 0), which(save.m == H))
-    w.class[ll3, i] = 0
   }
   
   ### score examinees's responses
@@ -853,12 +862,12 @@ algo_mc.npc <- function(mcq, dat, H, LS = NULL) {
                            nrow = N,
                            ncol = J,
                            byrow = TRUE)
-  for (i in 1:J) {
-    gl <- score.op[[i]]
-    op <- c(1:H)
-    for (j in 1:H) {
-      score.response[, i][which(dat[, i] == j)] <-
-        gl[, 2][which(gl[, 1] == j)]
+  for (j in 1:J) {
+    gl <- score.op[[j]]
+    op <- c(1:H[j])
+    for (h in 1:H[j]) {
+      score.response[, j][which(dat[, j] == h)] <-
+        gl[, 2][which(gl[, 1] == h)]
     }
   }
   
