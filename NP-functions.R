@@ -746,7 +746,7 @@ score.option = function(mcq, H) {
   
   for (i in 1:J) {
     
-    O = no.options[j]
+    O = no.options[i]
     
     j.id = unique(item.no)[i]
     
