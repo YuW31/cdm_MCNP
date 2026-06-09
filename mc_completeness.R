@@ -56,16 +56,15 @@ mc_completenes <- function(Q){ # input should be a data frame
         }
         
         mixed.g[mixed.g >1] = 1
-        print(mixed.g)
         
-        Q.e_k =  Q.body[Q.body[,1]==1,]
+        Q.e_k =  Q.body[Q.body[,k]==1,]
         
         loc = apply(Q.e_k[,-k],1,function(y){
           all(mixed.g[-k]-y >= 0)
         })
-        loc.J = unique(Q$Item[Q.body[,1]==1][loc]) # find all Q_j
+        loc.J = unique(Q$Item[Q.body[,k]==1][loc]) # find all Q_j
         
-        if (is.na(loc.J)){
+        if (length(loc.J) == 0){
           stop("The Q-matrix is not complete because the examinees who have mastered Attribute ", k, "
                cannot be differentiated from those who have not mastered it.")
         }
